@@ -73,3 +73,11 @@ You can also run it locally from the command line:
 ```bash
 node delivery_parser.js < raw_delivery_note.txt
 ```
+## Solar PV payback calculator
+
+`index.html` is a standalone, client-ready solar PV payback calculator. Open it
+in any browser, enter usable roof area and annual electricity bill, and it will
+show an indicative system size, install cost, yearly savings, and simple payback
+period. The page has no build step or third-party dependencies, so it can be
+kept as a backup demo file or sent directly to clients.
+

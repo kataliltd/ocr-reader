@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solar PV Payback Calculator</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7f3;
+        --card: #ffffff;
+        --ink: #162018;
+        --muted: #647068;
+        --primary: #f7b733;
+        --primary-dark: #cf8500;
+        --green: #1f8a5b;
+        --green-dark: #126440;
+        --line: #dfe7df;
+        --shadow: 0 24px 70px rgba(24, 44, 30, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(247, 183, 51, 0.26), transparent 34rem),
+          linear-gradient(135deg, #f7fbf6 0%, var(--bg) 48%, #eef5ef 100%);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        gap: 28px;
+        align-items: stretch;
+      }
+
+      .intro,
+      .panel,
+      .assumptions {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(223, 231, 223, 0.9);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+
+      .intro {
+        padding: clamp(28px, 5vw, 56px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .intro::after {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        right: -86px;
+        bottom: -108px;
+        background: radial-gradient(circle, rgba(31, 138, 91, 0.18), transparent 68%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(31, 138, 91, 0.1);
+        color: var(--green-dark);
+        font-size: 0.86rem;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 12ch;
+        font-size: clamp(2.75rem, 8vw, 5.65rem);
+        line-height: 0.92;
+        letter-spacing: -0.07em;
+      }
+
+      .lede {
+        max-width: 58ch;
+        margin: 24px 0 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        line-height: 1.65;
+      }
+
+      .client-note {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 34px;
+      }
+
+      .metric {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .metric strong {
+        display: block;
+        color: var(--green-dark);
+        font-size: 1.35rem;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .panel {
+        padding: 28px;
+      }
+
+      .panel h2,
+      .assumptions h2 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+      }
+
+      .helper {
+        margin: 0 0 24px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      form {
+        display: grid;
+        gap: 18px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        color: #334039;
+        font-weight: 750;
+      }
+
+      .field-help {
+        color: var(--muted);
+        font-size: 0.88rem;
+        font-weight: 500;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      .prefix,
+      .suffix {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-weight: 800;
+        pointer-events: none;
+      }
+
+      .prefix {
+        left: 16px;
+      }
+
+      .suffix {
+        right: 16px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        min-height: 54px;
+        border: 1px solid #cbd8cd;
+        border-radius: 16px;
+        background: #fbfdfb;
+        color: var(--ink);
+        font: inherit;
+        font-weight: 700;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+
+      input {
+        padding: 0 16px;
+      }
+
+      select {
+        padding: 0 44px 0 16px;
+      }
+
+      .with-prefix input {
+        padding-left: 34px;
+      }
+
+      .with-suffix input {
+        padding-right: 56px;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--green);
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(31, 138, 91, 0.13);
+      }
+
+      .results {
+        margin-top: 24px;
+        padding: 22px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #1f8a5b, #166845);
+        color: #ffffff;
+      }
+
+      .payback {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 2px 0 12px;
+      }
+
+      .payback strong {
+        font-size: clamp(3rem, 7vw, 5rem);
+        line-height: 0.95;
+        letter-spacing: -0.07em;
+      }
+
+      .payback span {
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .confidence {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.86);
+        line-height: 1.55;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .result-card {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .result-card span {
+        display: block;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.8rem;
+      }
+
+      .result-card strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 1.12rem;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      button,
+      .secondary-action {
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 850;
+        text-decoration: none;
+      }
+
+      button {
+        padding: 14px 20px;
+        background: var(--primary);
+        color: #3a2700;
+      }
+
+      .secondary-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.16);
+        color: #ffffff;
+      }
+
+      .assumptions {
+        margin-top: 28px;
+        padding: 28px;
+      }
+
+      .assumption-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 20px;
+      }
+
+      .assumption {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fbfdfb;
+      }
+
+      .assumption span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .assumption strong {
+        display: block;
+        margin-top: 5px;
+      }
+
+      .disclaimer {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .client-note,
+        .assumption-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+        }
+
+        main {
+          width: 100%;
+          padding: 0;
+        }
+
+        .intro,
+        .panel,
+        .assumptions {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+
+        .actions,
+        button {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="intro">
+          <p class="eyebrow">☀ Client-ready indicative estimate</p>
+          <h1 id="page-title">Solar PV payback calculator</h1>
+          <p class="lede">
+            Enter a roof area and annual electricity bill to produce a quick, client-friendly
+            estimate of system size, likely yearly savings, and simple payback period.
+          </p>
+          <div class="client-note" aria-label="Calculator highlights">
+            <div class="metric">
+              <strong>Fast</strong>
+              <span>Two required inputs</span>
+            </div>
+            <div class="metric">
+              <strong>Clear</strong>
+              <span>Payback plus assumptions</span>
+            </div>
+            <div class="metric">
+              <strong>Shareable</strong>
+              <span>Print or save to PDF</span>
+            </div>
+          </div>
+        </div>
+
+        <section class="panel" aria-labelledby="calculator-title">
+          <h2 id="calculator-title">Estimate payback</h2>
+          <p class="helper">Use this as a first-pass conversation starter before a detailed survey.</p>
+
+          <form id="solar-form">
+            <label>
+              Usable roof size
+              <span class="field-help">South, east, or west facing area without major shading.</span>
+              <span class="input-wrap with-suffix">
+                <input id="roof-size" type="number" min="10" max="10000" step="1" value="60" inputmode="decimal" />
+                <span class="suffix">m²</span>
+              </span>
+            </label>
+
+            <label>
+              Annual electricity bill
+              <span class="field-help">Use the client’s latest yearly electricity spend.</span>
+              <span class="input-wrap with-prefix">
+                <span class="prefix">£</span>
+                <input id="annual-bill" type="number" min="100" max="1000000" step="50" value="2400" inputmode="decimal" />
+              </span>
+            </label>
+
+            <label>
+              Building use profile
+              <span class="field-help">Higher daytime use improves self-consumption and payback.</span>
+              <select id="usage-profile">
+                <option value="0.45">Mostly evening / low daytime use</option>
+                <option value="0.60" selected>Mixed daytime use</option>
+                <option value="0.75">High daytime use</option>
+              </select>
+            </label>
+          </form>
+
+          <div class="results" aria-live="polite">
+            <div class="payback"><strong id="payback-years">—</strong><span>years</span></div>
+            <p id="confidence" class="confidence">Update the inputs to calculate the indicative payback.</p>
+            <div class="result-grid">
+              <div class="result-card">
+                <span>Suggested system</span>
+                <strong id="system-size">—</strong>
+              </div>
+              <div class="result-card">
+                <span>Estimated install cost</span>
+                <strong id="install-cost">—</strong>
+              </div>
+              <div class="result-card">
+                <span>Annual generation</span>
+                <strong id="annual-generation">—</strong>
+              </div>
+              <div class="result-card">
+                <span>Estimated yearly saving</span>
+                <strong id="annual-saving">—</strong>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" id="reset-demo">Reset demo values</button>
+              <a class="secondary-action" href="javascript:window.print()">Print / save PDF</a>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="assumptions" aria-labelledby="assumptions-title">
+        <h2 id="assumptions-title">Built-in assumptions</h2>
+        <p class="helper">
+          The figures below are deliberately conservative defaults for an indicative UK-style
+          estimate. Adjust the script constants if you need local tariffs, incentive schemes, or
+          installation pricing.
+        </p>
+        <div class="assumption-grid">
+          <div class="assumption"><span>Panel density</span><strong>0.20 kWp / m²</strong></div>
+          <div class="assumption"><span>Yield</span><strong>850 kWh / kWp / yr</strong></div>
+          <div class="assumption"><span>Electricity rate</span><strong>£0.28 / kWh</strong></div>
+          <div class="assumption"><span>Export rate</span><strong>£0.08 / kWh</strong></div>
+        </div>
+        <p class="disclaimer">
+          This is not a formal quote. Payback varies with roof orientation, shading, structural work,
+          grid connection, tax treatment, tariff changes, export agreements, and client consumption
+          patterns.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const assumptions = {
+        panelDensityKwPerM2: 0.2,
+        yieldKwhPerKw: 850,
+        installCostPerKw: 1250,
+        minimumInstallCost: 5200,
+        electricityRate: 0.28,
+        exportRate: 0.08,
+      };
+
+      const fields = {
+        roofSize: document.querySelector("#roof-size"),
+        annualBill: document.querySelector("#annual-bill"),
+        usageProfile: document.querySelector("#usage-profile"),
+        paybackYears: document.querySelector("#payback-years"),
+        confidence: document.querySelector("#confidence"),
+        systemSize: document.querySelector("#system-size"),
+        installCost: document.querySelector("#install-cost"),
+        annualGeneration: document.querySelector("#annual-generation"),
+        annualSaving: document.querySelector("#annual-saving"),
+        resetDemo: document.querySelector("#reset-demo"),
+      };
+
+      const currency = new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: "GBP",
+        maximumFractionDigits: 0,
+      });
+
+      const number = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function calculate() {
+        const roofSize = Number(fields.roofSize.value) || 0;
+        const annualBill = Number(fields.annualBill.value) || 0;
+        const selfConsumption = Number(fields.usageProfile.value) || 0.6;
+
+        const annualConsumption = annualBill / assumptions.electricityRate;
+        const roofLimitedKw = roofSize * assumptions.panelDensityKwPerM2;
+        const demandLimitedKw = annualConsumption / assumptions.yieldKwhPerKw;
+        const systemKw = clamp(Math.min(roofLimitedKw, demandLimitedKw * 1.15), 1, roofLimitedKw);
+        const annualGeneration = systemKw * assumptions.yieldKwhPerKw;
+        const usedOnSite = annualGeneration * selfConsumption;
+        const exported = annualGeneration - usedOnSite;
+        const yearlySaving = usedOnSite * assumptions.electricityRate + exported * assumptions.exportRate;
+        const installCost = Math.max(
+          assumptions.minimumInstallCost,
+          systemKw * assumptions.installCostPerKw,
+        );
+        const payback = installCost / yearlySaving;
+
+        fields.paybackYears.textContent = Number.isFinite(payback) ? payback.toFixed(1) : "—";
+        fields.systemSize.textContent = `${systemKw.toFixed(1)} kWp`;
+        fields.installCost.textContent = currency.format(installCost);
+        fields.annualGeneration.textContent = `${number.format(annualGeneration)} kWh`;
+        fields.annualSaving.textContent = currency.format(yearlySaving);
+
+        const billCoverage = clamp((yearlySaving / annualBill) * 100, 0, 100);
+        fields.confidence.textContent =
+          `Indicative simple payback is ${payback.toFixed(1)} years, with estimated savings ` +
+          `covering about ${number.format(billCoverage)}% of the current annual bill.`;
+      }
+
+      function resetDemoValues() {
+        fields.roofSize.value = 60;
+        fields.annualBill.value = 2400;
+        fields.usageProfile.value = 0.6;
+        calculate();
+      }
+
+      document.querySelector("#solar-form").addEventListener("input", calculate);
+      fields.usageProfile.addEventListener("change", calculate);
+      fields.resetDemo.addEventListener("click", resetDemoValues);
+      calculate();
+    </script>
+  </body>
+</html>
